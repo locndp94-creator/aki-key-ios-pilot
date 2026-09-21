@@ -17,12 +17,16 @@ jobs:
 
       - name: Expand source bundle
         run: |
+          cat source/chunk_00.b64 source/chunk_01.b64 source/chunk_02.b64 source/chunk_03.b64 source/chunk_04.b64 source/chunk_05.b64 source/chunk_06.b64 > /tmp/aki_key_source_v02.b64
           python3 - <<'PY'
-          import base64, pathlib
-          src = pathlib.Path("source/aki_key_source_v02.zip.b64").read_text().strip()
+          import base64, hashlib, pathlib
+          src = pathlib.Path("/tmp/aki_key_source_v02.b64").read_text().strip()
           dst = pathlib.Path("/tmp/aki_key_source_v02.zip")
-          dst.write_bytes(base64.b64decode(src, validate=True))
-          print("decoded_bytes", dst.stat().st_size)
+          raw = base64.b64decode(src, validate=True)
+          dst.write_bytes(raw)
+          print("decoded_bytes", len(raw))
+          print("decoded_sha256", hashlib.sha256(raw).hexdigest())
+          assert hashlib.sha256(raw).hexdigest() == "aaf95c5c25e81c3e48bca511ad8c5c7d3cea30c69a381a2212aae9fa394d35fd"
           PY
           unzip -t /tmp/aki_key_source_v02.zip
           unzip -q /tmp/aki_key_source_v02.zip -d .
