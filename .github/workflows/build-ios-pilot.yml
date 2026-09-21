@@ -1,0 +1,78 @@
+name: Build AKI Key iOS Pilot V0.2
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Expand source bundle
+        run: |
+          unzip -q source/aki_key_source_v02.zip -d .
+          chmod +x Scripts/*.sh
+
+      - name: Tool versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Source + core preflight
+        run: ./Scripts/verify_source.sh
+
+      - name: Build LITE unsigned IPA
+        run: ./Scripts/build_unsigned.sh lite
+
+      - name: Inspect LITE
+        run: python3 Scripts/inspect_ipa.py out/AKIKeyPilot-lite-unsigned.ipa lite
+
+      - name: Save LITE
+        run: cp out/AKIKeyPilot-lite-unsigned.ipa /tmp/AKIKeyPilot-lite-unsigned.ipa
+
+      - name: Build FULL unsigned IPA
+        run: ./Scripts/build_unsigned.sh full
+
+      - name: Inspect FULL
+        run: python3 Scripts/inspect_ipa.py out/AKIKeyPilot-full-unsigned.ipa full
+
+      - name: Restore LITE
+        run: cp /tmp/AKIKeyPilot-lite-unsigned.ipa out/AKIKeyPilot-lite-unsigned.ipa
+
+      - name: Build evidence + checksums
+        run: |
+          {
+            echo "AKI_KEY_IOS_PILOT_V0_2"
+            echo "UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            xcodebuild -version
+            xcodegen --version
+            python3 Scripts/inspect_ipa.py out/AKIKeyPilot-lite-unsigned.ipa lite
+            python3 Scripts/inspect_ipa.py out/AKIKeyPilot-full-unsigned.ipa full
+          } | tee out/EVIDENCE_BUILD.txt
+          cd out
+          shasum -a 256 *.ipa | tee SHA256SUMS.txt
+
+      - name: Upload pilot artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AKI_KEY_IOS_PILOT_V0_2_IPA
+          path: |
+            out/AKIKeyPilot-lite-unsigned.ipa
+            out/AKIKeyPilot-full-unsigned.ipa
+            out/SHA256SUMS.txt
+            out/EVIDENCE_BUILD.txt
+          retention-days: 14
