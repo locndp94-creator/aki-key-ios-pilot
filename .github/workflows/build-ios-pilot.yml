@@ -17,16 +17,25 @@ jobs:
 
       - name: Expand source bundle
         run: |
-          cat source/chunk_00.b64 source/chunk_01.b64 source/chunk_02.b64 source/chunk_03.b64 source/chunk_04.b64 source/chunk_05.b64 source/chunk_06.b64 > /tmp/aki_key_source_v02.b64
           python3 - <<'PY'
           import base64, hashlib, pathlib
-          src = pathlib.Path("/tmp/aki_key_source_v02.b64").read_text().strip()
-          dst = pathlib.Path("/tmp/aki_key_source_v02.zip")
-          raw = base64.b64decode(src, validate=True)
-          dst.write_bytes(raw)
+          parts=[]
+          for i in range(7):
+              s=pathlib.Path(f"source/chunk_{i:02d}.b64").read_text().strip()
+              if i == 1:
+                  assert len(s) == 5996
+                  s = s[:216] + "8YVl" + s[216:]
+              parts.append(s)
+          src="".join(parts)
+          assert len(src) == 41760, len(src)
+          raw=base64.b64decode(src, validate=True)
+          digest=hashlib.sha256(raw).hexdigest()
           print("decoded_bytes", len(raw))
-          print("decoded_sha256", hashlib.sha256(raw).hexdigest())
-          assert hashlib.sha256(raw).hexdigest() == "aaf95c5c25e81c3e48bca511ad8c5c7d3cea30c69a381a2212aae9fa394d35fd"
+          print("decoded_sha256", digest)
+          assert len(raw) == 31318
+          assert digest == "aaf95c5c25e81c3e48bca511ad8c5c7d3cea30c69a381a2212aae9fa394d35fd"
+          dst=pathlib.Path("/tmp/aki_key_source_v02.zip")
+          dst.write_bytes(raw)
           PY
           unzip -t /tmp/aki_key_source_v02.zip
           unzip -q /tmp/aki_key_source_v02.zip -d .
