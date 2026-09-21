@@ -24,7 +24,7 @@ jobs:
               s=pathlib.Path(f"source/chunk_{i:02d}.b64").read_text().strip()
               if i == 1:
                   assert len(s) == 5996
-                  s = s[:216] + "8YVl" + s[216:]
+                  s = s[:219] + "8YVl" + s[219:]
               parts.append(s)
           src="".join(parts)
           assert len(src) == 41760, len(src)
