@@ -54,7 +54,10 @@ jobs:
           xcodegen --version
 
       - name: Source + core preflight
-        run: ./Scripts/verify_source.sh
+        run: |
+          python3 -m venv /tmp/aki-preflight-venv
+          /tmp/aki-preflight-venv/bin/pip -q install pyyaml
+          PATH="/tmp/aki-preflight-venv/bin:$PATH" ./Scripts/verify_source.sh
 
       - name: Build LITE unsigned IPA
         run: ./Scripts/build_unsigned.sh lite
