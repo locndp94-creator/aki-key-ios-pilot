@@ -1,0 +1,2 @@
+AKI_KEY_IOS_PILOT_V0_2
+Trigger macOS/Xcode compile gate after source bundle publication.
